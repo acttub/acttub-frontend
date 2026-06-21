@@ -260,7 +260,7 @@ export function CoachingPage() {
             <label
               htmlFor="video"
               className={cn(
-                "flex min-h-36 cursor-pointer flex-col items-center justify-center gap-3 px-4 py-6 text-center transition hover:brightness-[0.98]",
+                "flex min-h-36 cursor-pointer flex-col items-center justify-center gap-3 px-4 py-6 text-center transition hover:brightness-[0.98] focus-within:ring-4 focus-within:ring-black/15",
                 theme.dropzone
               )}
             >
@@ -269,7 +269,7 @@ export function CoachingPage() {
                 className="size-8"
               />
               <span className="text-sm font-bold">영상 파일</span>
-              <span className="text-xs opacity-80">
+              <span className="block max-w-full truncate text-xs opacity-80">
                 {selectedVideo?.name ?? "mp4, mov, webm · 최대 100MB"}
               </span>
               <input
@@ -294,11 +294,17 @@ export function CoachingPage() {
 
             <fieldset className="grid gap-2">
               <legend className="text-sm font-bold">매체 / 장르</legend>
-              <div className="flex flex-wrap gap-2">
+              <div
+                role="radiogroup"
+                aria-label="매체 / 장르"
+                className="flex flex-wrap gap-2"
+              >
                 {coachingGenres.map((genre) => (
                   <button
                     key={genre}
                     type="button"
+                    role="radio"
+                    aria-checked={selectedGenre === genre}
                     className={cn(
                       "h-9 rounded-full border px-4 text-sm font-bold transition",
                       selectedGenre === genre ? theme.chipActive : theme.chip
@@ -502,6 +508,38 @@ function ResultPanel({
           <p className={cn("mt-1 text-sm", theme.muted)}>
             분석이 완료되면 강점 요약과 피드백 카드가 여기에 표시됩니다.
           </p>
+        </div>
+      </section>
+    )
+  }
+
+  if (result.status !== "COMPLETED" || !result.result) {
+    const isFailed = result.status === "FAILED"
+
+    return (
+      <section className={cn("grid gap-4", theme.card)}>
+        <div className="flex items-start gap-3">
+          {isFailed ? (
+            <AlertCircle
+              aria-hidden="true"
+              className="mt-0.5 size-5 shrink-0 text-red-600"
+            />
+          ) : (
+            <Loader2
+              aria-hidden="true"
+              className={cn("mt-0.5 size-5 shrink-0 animate-spin", theme.accentText)}
+            />
+          )}
+          <div>
+            <h2 className="text-lg font-bold">
+              {isFailed ? "분석 실패" : "분석 중"}
+            </h2>
+            <p className={cn("mt-1 text-sm", theme.muted)}>
+              {isFailed
+                ? `코칭 ID ${result.coachingId}의 분석이 실패했습니다. 다시 시도해 주세요.`
+                : `코칭 ID ${result.coachingId}의 분석이 아직 진행 중입니다.`}
+            </p>
+          </div>
         </div>
       </section>
     )

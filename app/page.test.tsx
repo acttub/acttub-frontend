@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import Home from "./page"
 import { Providers } from "./providers"
 
+const originalFetch = globalThis.fetch
+
 function renderHome() {
   return render(
     <Providers>
@@ -16,6 +18,7 @@ function renderHome() {
 describe("Home", () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it("renders the coaching form with three design styles", () => {
@@ -34,6 +37,10 @@ describe("Home", () => {
     expect(
       screen.getByRole("button", { name: "AI로 분석" })
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole("radiogroup", { name: "매체 / 장르" })
+    ).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "연극" })).toBeChecked()
   })
 
   it("switches visual style without losing the coaching form", async () => {
@@ -47,6 +54,44 @@ describe("Home", () => {
       screen.getByText("동네 게시판처럼 따뜻하고 빠르게 스캔되는 구성")
     ).toBeInTheDocument()
     expect(screen.getByLabelText("상황")).toBeInTheDocument()
+  })
+
+  it("announces the selected genre to assistive technology", async () => {
+    const user = userEvent.setup()
+    renderHome()
+
+    await user.click(screen.getByRole("radio", { name: "영화" }))
+
+    expect(screen.getByRole("radio", { name: "영화" })).toBeChecked()
+    expect(screen.getByRole("radio", { name: "연극" })).not.toBeChecked()
+  })
+
+  it("provides a visible keyboard focus style for video upload", async () => {
+    const user = userEvent.setup()
+    renderHome()
+
+    await user.tab()
+    await user.tab()
+    await user.tab()
+    await user.tab()
+
+    expect(screen.getByLabelText("영상 파일")).toHaveFocus()
+    expect(screen.getByLabelText("영상 파일").closest("label")).toHaveClass(
+      "focus-within:ring-4"
+    )
+  })
+
+  it("constrains long uploaded filenames inside the upload dropzone", async () => {
+    const user = userEvent.setup()
+    renderHome()
+    const longFilename = `${"scene".repeat(40)}.mp4`
+
+    await user.upload(
+      screen.getByLabelText("영상 파일"),
+      new File(["video"], longFilename, { type: "video/mp4" })
+    )
+
+    expect(screen.getByText(longFilename)).toHaveClass("max-w-full", "truncate")
   })
 
   it("posts a coaching request and renders feedback cards", async () => {
@@ -98,7 +143,7 @@ describe("Home", () => {
       screen.getByLabelText("영상 파일"),
       new File(["video"], "scene.mp4", { type: "video/mp4" })
     )
-    await user.click(screen.getByRole("button", { name: "영화" }))
+    await user.click(screen.getByRole("radio", { name: "영화" }))
     await user.type(
       screen.getByLabelText("상황"),
       "헤어진 연인을 우연히 다시 만난 상황"
@@ -115,7 +160,7 @@ describe("Home", () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        "http://localhost:8080/api/v1/coachings",
+        "/api/coachings",
         expect.objectContaining({
           method: "POST",
           body: expect.any(FormData),
@@ -135,5 +180,48 @@ describe("Home", () => {
       await screen.findByText("감정을 바로 터뜨리지 않고 버티는 힘이 보여요.")
     ).toBeInTheDocument()
     expect(screen.getByText("도입부 긴장이 먼저 올라왔어요")).toBeInTheDocument()
+  })
+
+  it("handles pending coaching responses without feedback output", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          coachingId: "2",
+          status: "ANALYZING",
+          createdAt: "2026-06-20T18:10:00+09:00",
+          completedAt: null,
+          input: {
+            genre: "영화",
+            customGenre: null,
+            situation: "오디션을 기다리는 상황",
+            characterSetting: "긴장한 배우 지망생",
+            subtext: null,
+          },
+          result: null,
+        },
+      }),
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    const user = userEvent.setup()
+    renderHome()
+
+    await user.upload(
+      screen.getByLabelText("영상 파일"),
+      new File(["video"], "scene.mp4", { type: "video/mp4" })
+    )
+    await user.click(screen.getByRole("radio", { name: "영화" }))
+    await user.type(screen.getByLabelText("상황"), "오디션을 기다리는 상황")
+    await user.type(screen.getByLabelText("인물 설정"), "긴장한 배우 지망생")
+    await user.click(screen.getByRole("button", { name: "AI로 분석" }))
+
+    expect(await screen.findByText("분석 중")).toBeInTheDocument()
+    expect(
+      screen.getByText("코칭 ID 2의 분석이 아직 진행 중입니다.")
+    ).toBeInTheDocument()
+  })
+
+  it("restores stubbed globals between tests", () => {
+    expect(globalThis.fetch).toBe(originalFetch)
   })
 })

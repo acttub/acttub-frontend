@@ -1,4 +1,4 @@
-export const COACHING_API_URL = "http://localhost:8080/api/v1/coachings"
+export const COACHING_API_URL = "/api/coachings"
 
 export const coachingGenres = ["연극", "영화", "뮤지컬", "드라마", "기타"] as const
 
@@ -40,7 +40,7 @@ export type CoachingResponse = {
       practiceSteps: string[]
       expectedEffect: string
     }>
-  }
+  } | null
 }
 
 type SuccessEnvelope<T> = {
