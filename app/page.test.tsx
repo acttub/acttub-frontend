@@ -94,6 +94,26 @@ describe("Home", () => {
     expect(screen.getByText(longFilename)).toHaveClass("max-w-full", "truncate")
   })
 
+  it("announces validation errors and connects them to invalid fields", async () => {
+    const user = userEvent.setup()
+    renderHome()
+
+    await user.click(screen.getByRole("button", { name: "AI로 분석" }))
+
+    expect(await screen.findByText("상황을 입력해 주세요.")).toHaveAttribute(
+      "role",
+      "alert"
+    )
+    expect(screen.getByLabelText("상황")).toHaveAttribute(
+      "aria-describedby",
+      "situation-error"
+    )
+    expect(screen.getByLabelText("영상 파일")).toHaveAttribute(
+      "aria-describedby",
+      "video-error"
+    )
+  })
+
   it("posts a coaching request and renders feedback cards", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

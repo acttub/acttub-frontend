@@ -279,6 +279,7 @@ export function CoachingPage() {
                 className="sr-only"
                 aria-label="영상 파일"
                 aria-invalid={Boolean(errors.video)}
+                aria-describedby={errors.video ? "video-error" : undefined}
                 onChange={(event) => {
                   const file = event.target.files?.[0]
                   if (file) {
@@ -290,7 +291,10 @@ export function CoachingPage() {
                 }}
               />
             </label>
-            <FieldError message={errors.video?.message} />
+            <FieldError
+              id="video-error"
+              message={errors.video?.message}
+            />
 
             <fieldset className="grid gap-2">
               <legend className="text-sm font-bold">매체 / 장르</legend>
@@ -332,6 +336,8 @@ export function CoachingPage() {
                   id="customGenre"
                   className={cn("w-full border outline-none ring-4 ring-transparent", theme.input)}
                   placeholder="예: 웹드라마, 숏폼, 광고"
+                  aria-invalid={Boolean(errors.customGenre)}
+                  aria-describedby={errors.customGenre ? "customGenre-error" : undefined}
                   {...register("customGenre")}
                 />
               </FormField>
@@ -365,6 +371,8 @@ export function CoachingPage() {
                   theme.input
                 )}
                 placeholder="예: 합격 발표를 기다리다 불합격 전화를 받는 순간"
+                aria-invalid={Boolean(errors.situation)}
+                aria-describedby={errors.situation ? "situation-error" : undefined}
                 {...register("situation")}
               />
             </FormField>
@@ -382,6 +390,10 @@ export function CoachingPage() {
                   theme.input
                 )}
                 placeholder="예: 삼수생, 마지막 기회라 절박한 상태"
+                aria-invalid={Boolean(errors.characterSetting)}
+                aria-describedby={
+                  errors.characterSetting ? "characterSetting-error" : undefined
+                }
                 {...register("characterSetting")}
               />
             </FormField>
@@ -400,6 +412,8 @@ export function CoachingPage() {
                   theme.input
                 )}
                 placeholder="예: 괜찮은 척하지만 속으론 무너지고 있다"
+                aria-invalid={Boolean(errors.subtext)}
+                aria-describedby={errors.subtext ? "subtext-error" : undefined}
                 {...register("subtext")}
               />
             </FormField>
@@ -476,18 +490,25 @@ function FormField({
       </div>
       {help ? <p className="text-xs text-black/55">{help}</p> : null}
       {children}
-      <FieldError message={error} />
+      <FieldError
+        id={`${id}-error`}
+        message={error}
+      />
     </div>
   )
 }
 
-function FieldError({ message }: { message?: string }) {
+function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) {
     return null
   }
 
   return (
-    <p className="text-sm font-medium text-red-600">
+    <p
+      id={id}
+      role="alert"
+      className="text-sm font-medium text-red-600"
+    >
       {message}
     </p>
   )
